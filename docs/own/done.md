@@ -1,3 +1,4 @@
+- [x] use spc from subproject, remove the files in src/
 - [x] first serialization support
 	- [x] create/save handles
 	- [x] remove serialize.cpp
