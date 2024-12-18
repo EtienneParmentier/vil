@@ -569,6 +569,10 @@ VkResult doCreateDevice(
 		fpPhdevFeatures2 && fpPhdevProps2 &&
 		((ini.vulkan12 && phdevProps.apiVersion >= VK_API_VERSION_1_2) ||
 			hasExt(supportedExts, VK_KHR_8BIT_STORAGE_EXTENSION_NAME));
+	auto hasDrawParamsApi =
+		fpPhdevFeatures2 && fpPhdevProps2 &&
+		((ini.vulkan11 && phdevProps.apiVersion >= VK_API_VERSION_1_1) ||
+			hasExt(supportedExts, VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME));
 	auto hasDeviceFaultApi = enableDeviceFault &&
 		fpPhdevFeatures2 && fpPhdevProps2 &&
 		hasExt(supportedExts, VK_EXT_DEVICE_FAULT_EXTENSION_NAME);
@@ -583,6 +587,7 @@ VkResult doCreateDevice(
 	auto hasAddressBindingReport = false;
 	bool hasStorage8 = false;
 	bool hasStorage16 = false;
+	bool hasDrawParams = false;
 
 	// find generally relevant feature structs in chain
 	VkPhysicalDeviceVulkan11Features features11 {};
@@ -598,6 +603,7 @@ VkResult doCreateDevice(
 	VkPhysicalDeviceAddressBindingReportFeaturesEXT* inABR = nullptr;
 	VkPhysicalDevice16BitStorageFeatures* inStorage16 {};
 	VkPhysicalDevice8BitStorageFeatures* inStorage8 {};
+	VkPhysicalDeviceShaderDrawParametersFeatures* inDrawParams {};
 
 	auto* link = static_cast<VkBaseOutStructure*>(pNext);
 	while(link) {
@@ -626,6 +632,8 @@ VkResult doCreateDevice(
 			inStorage8 = reinterpret_cast<VkPhysicalDevice8BitStorageFeatures*>(link);
 		} else if(link->sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES) {
 			inStorage16 = reinterpret_cast<VkPhysicalDevice16BitStorageFeatures*>(link);
+		} else if(link->sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES) {
+			inDrawParams = reinterpret_cast<VkPhysicalDeviceShaderDrawParametersFeatures*>(link);
 		}
 
 		link = (static_cast<VkBaseOutStructure*>(link->pNext));
@@ -637,8 +645,8 @@ VkResult doCreateDevice(
 	VkPhysicalDeviceAddressBindingReportFeaturesEXT abrFeatures {};
 	VkPhysicalDevice16BitStorageFeatures storage16Features {};
 	VkPhysicalDevice8BitStorageFeatures storage8Features {};
-	if(hasTimelineSemaphoresApi || hasTransformFeedbackApi || hasDeviceFaultApi ||
-			has16BitStorageApi || has8BitStorageApi) {
+	VkPhysicalDeviceShaderDrawParametersFeatures drawParamsFeatures {};
+	if(fpPhdevFeatures2 && fpPhdevProps2) {
 		dlg_assert(fpPhdevFeatures2);
 		dlg_assert(fpPhdevProps2);
 
@@ -667,6 +675,12 @@ VkResult doCreateDevice(
 			storage16Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES;
 			storage16Features.pNext = features2.pNext;
 			features2.pNext = &storage16Features;
+		}
+
+		if(hasDrawParamsApi) {
+			drawParamsFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES;
+			drawParamsFeatures.pNext = features2.pNext;
+			features2.pNext = &drawParamsFeatures;
 		}
 
 		if(hasDeviceFaultApi) {
@@ -746,6 +760,19 @@ VkResult doCreateDevice(
 			} else {
 				storage16Features.pNext = const_cast<void*>(nci.pNext);
 				nci.pNext = &storage16Features;
+			}
+		}
+
+		if(drawParamsFeatures.shaderDrawParameters) {
+			hasDrawParams = true;
+
+			if(inDrawParams) {
+				inDrawParams->shaderDrawParameters = true;
+			} else if(inVulkan11) {
+				inVulkan11->shaderDrawParameters = true;
+			} else {
+				drawParamsFeatures.pNext = const_cast<void*>(nci.pNext);
+				nci.pNext = &drawParamsFeatures;
 			}
 		}
 
@@ -845,6 +872,7 @@ VkResult doCreateDevice(
 	dev.extDeviceFault = hasDeviceFault;
 	dev.storage8Bit = hasStorage8;
 	dev.storage16Bit = hasStorage16;
+	dev.shaderDrawParameters = hasDrawParams;
 
 	if(hasAddressBindingReport) {
 		dev.addressMap = std::make_unique<DeviceAddressMap>();
