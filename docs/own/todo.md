@@ -7,7 +7,7 @@ v0.3:
 - improve README, add more gifs/pics
 
 urgent, bugs:
-- [ ] look into annoying lmm.cpp:138 match assert
+- [x] look into annoying lmm.cpp:138 match assert
 - [ ] fix image viewer layout
 - [ ] viewing texture in command viewer: show size of view (i.e. active mip level),
       not the texture itself. Can be confusing otherwise
