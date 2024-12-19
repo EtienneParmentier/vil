@@ -65,6 +65,24 @@ Supported/Tested platforms:
 
 - Unix, gcc & clang (with solid C++17 support)
 	- xcb, xlib and wayland platforms
+   		- x11 dependencies:
+			- x11
+			- x11-xcb
+			- xcursor
+			- xcb
+			- xcb-ewmh
+			- xcb-icccm
+			- xcb-shm
+			- xcb-present
+			- xcb-xinput
+			- xcb-xkb
+			- xkbcommon-x11
+		- wayland dependencies:
+			- wayland-client>=1.14.91
+			- wayland-cursor
+			- wayland-protocols >= 1.14
+			- wayland-scanner
+			- wayland-egl (if using egl)
   - hooked overlay not supported on wayland, it is too well designed to allow hacks like that.
     Just integrate vil with your application using the API or set the `VIL_CREATE_WINDOW=1` environment var
 	for a separate window (that works on native wayland). Or make your application use xcb/xlib.
@@ -86,7 +104,13 @@ To build the layer from scratch, you'll need an up-to-date version of [meson](ht
 Just clone the repository and run:
 
 ```shell
-meson build
+meson setup build
+ninja -C build
+```
+
+You can also disable wayland support like so:
+```shell
+meson setup build -Dx11-hook=false
 ninja -C build
 ```
 
